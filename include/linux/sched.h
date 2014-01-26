@@ -1105,6 +1105,16 @@ struct sched_rt_entity {
 #endif
 };
 
+
+struct sched_dss_entity{
+struct rb_node rb_node;
+unsigned int sched_dss_id; /*SCHED_DSS task logical id*/
+struct sched_attr *sched_attr; /*original SCHED_DSS task attributes*/
+
+u64 deadline;
+
+};
+
 struct sched_dl_entity {
 	struct rb_node	rb_node;
 
@@ -1187,6 +1197,7 @@ struct task_struct {
 	struct task_group *sched_task_group;
 #endif
 	struct sched_dl_entity dl;
+	struct sched_dss_entity dss;
 
 #ifdef CONFIG_PREEMPT_NOTIFIERS
 	/* list of struct preempt_notifier: */
