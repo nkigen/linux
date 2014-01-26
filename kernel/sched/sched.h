@@ -441,6 +441,14 @@ struct rt_rq {
 #endif
 };
 
+/*SCHED_DSS related runqueue fields*/
+struct dss_rq {
+struct rb_root dss_rb_root;
+struct rb_node dss_rb_node;/*TODO: list or rb tree?? */
+
+unsigned long dss_nr_running;
+};
+
 /* Deadline class' related fields in a runqueue */
 struct dl_rq {
 	/* runqueue is an rbtree, ordered by deadline */
@@ -555,6 +563,7 @@ struct rq {
 	struct cfs_rq cfs;
 	struct rt_rq rt;
 	struct dl_rq dl;
+	struct dss_rq dss;
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this cpu: */
