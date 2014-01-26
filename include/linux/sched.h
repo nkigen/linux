@@ -99,8 +99,8 @@ struct sched_param {
  * and policies, that can be used to ensure all the tasks will make their
  * timing constraints.
  *
- * As of now, the SCHED_DEADLINE policy (sched_dl scheduling class) is the
- * only user of this new interface. More information about the algorithm
+ * As of now, the SCHED_DEADLINE policy (sched_dl scheduling class) and SCHED_DSS(sched_dss scheduling class) are the
+ * only users of this new interface. More information about the algorithm
  * available in the scheduling class file or in Documentation/.
  */
 struct sched_attr {
@@ -115,7 +115,7 @@ struct sched_attr {
 	/* SCHED_FIFO, SCHED_RR */
 	u32 sched_priority;
 
-	/* SCHED_DEADLINE */
+	/* SCHED_DEADLINE and SCHED_DSS*/
 	u64 sched_runtime;
 	u64 sched_deadline;
 	u64 sched_period;
