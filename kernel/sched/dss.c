@@ -8,6 +8,11 @@
  */
 
 
+static void enqueue_task_dss(struct rq *rq, struct task_struct *p, int flags)
+{
+
+}
+
 const struct sched_class dss_sched_class = {
 	.next 			= &dl_sched_class,
 	.enqueue_task		= enqueue_task_dss,
