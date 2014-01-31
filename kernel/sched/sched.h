@@ -3,6 +3,7 @@
 #include <linux/sched/sysctl.h>
 #include <linux/sched/rt.h>
 #include <linux/sched/deadline.h>
+#include <linux/sched/dss.h>
 #include <linux/mutex.h>
 #include <linux/spinlock.h>
 #include <linux/stop_machine.h>
@@ -444,7 +445,7 @@ struct rt_rq {
 /*SCHED_DSS related runqueue fields*/
 struct dss_rq {
 struct rb_root dss_rb_root;
-struct rb_node dss_rb_node;/*TODO: list or rb tree?? */
+struct rb_node *dss_rb_node;/*TODO: list or rb tree?? */
 
 unsigned long dss_nr_running;
 };
