@@ -69,7 +69,7 @@ static struct sched_dss_entity *pick_next_dss_entity(struct dss_rq *dss_rq)
 /*TODO: Pick a dss task from the rb-tree*/
 }
 
-static struct task_struct *pick_next_task_dss(struct rg *rq)
+static struct task_struct *pick_next_task_dss(struct rq *rq)
 {
      struct task_struct *t;
      struct sched_dss_entity *se;
