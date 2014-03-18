@@ -92,7 +92,7 @@ static void put_prev_task_dss(struct rq *rq, struct task_struct *p)
 {
 	/*TODO: implement this!!*/
 }
-static void set_curr_task_dss(struct rg *rq)
+static void set_curr_task_dss(struct rq *rq)
 {
 
 }
@@ -115,7 +115,7 @@ const struct sched_class dss_sched_class = {
 #endif
 
 	.set_curr_task		= set_curr_task_dss,
-	.task_tick		=task_tick_dss,
+	.task_tick		= task_tick_dss,
 
 
 };
