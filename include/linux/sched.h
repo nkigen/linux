@@ -1159,10 +1159,15 @@ struct sched_dss_entity
 {
   struct rb_node rb_node;
   unsigned int sched_dss_id;	/*SCHED_DSS task logical id */
-  struct sched_attr *sched_attr;	/*original SCHED_DSS task attributes */
-
+//struct sched_attr *sched_attr;
+/*original SCHED_DSS task attributes */
+  
+  u64 dss_runtime;
   u64 dss_deadline; /*task deadline*/
   u64 dss_runtime; /*maximum execution time  Cmax*/
+  u64 dss_bw; /*task bandwidth per instance*/
+
+  struct hrtimer dss_timer; /*one task per timer*/
 
 };
 
