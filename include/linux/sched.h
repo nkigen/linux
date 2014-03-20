@@ -121,6 +121,9 @@ struct sched_attr
   u64 sched_runtime;
   u64 sched_deadline;
   u64 sched_period;
+
+  /*SCHED_DSS to distinguish periodic and sporadic tasks*/
+  u32 sched_type; /*can be SCHED_SPORADIC or SCHED_PERIODIC*/
 };
 
 struct exec_domain;
