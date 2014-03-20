@@ -129,6 +129,12 @@ const struct sched_class dss_sched_class = {
 
 	.set_curr_task		= set_curr_task_dss,
 	.task_tick		= task_tick_dss,
+	.task_fork		= task_fork_dss,
+	.task_dead		= task_dead_dss,
+
+	.prio_changed		= prio_changed_dss,
+	.switched_from		= switched_from_dss,
+	.switched_to		= switched_to_dss,
 
 
 };
