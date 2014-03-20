@@ -10,6 +10,15 @@
 #include "sched.h"
 
 
+static inline void dss_spin_lock(spinlock_t *lock)
+{
+	raw_spin_lock(&lock->rlock);
+}
+
+static inline void dss_spin_unlock(spinlock_t *lock)
+{
+	raw_spin_unlock(&lock->rlock);
+}
 
 static inline struct task_struct *dss_task_of(struct sched_dss_entity *se)
 {
