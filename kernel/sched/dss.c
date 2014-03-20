@@ -10,6 +10,10 @@
 #include "sched.h"
 
 
+static inline void dss_spin_lock_init(spilock_t *lock)
+{
+	raw_spin_lock_init(&lock->rlock);
+}
 static inline void dss_spin_lock(spinlock_t *lock)
 {
 	raw_spin_lock(&lock->rlock);
