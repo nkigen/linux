@@ -110,7 +110,18 @@ static void set_curr_task_dss(struct rq *rq)
 
 }
 
+static void prio_changed_dss(struct rq *rq, struct task_struct *t, int oldp)
+{
+	if(t->on_rq || rq->curr == t) {
+#ifdef CONFIG_SMP
+/*TODO: Implement this!!*/
+#else
+		resched_task(t);
 
+	}
+	else
+		/*TODO: Implement this!!*/
+}
 
 const struct sched_class dss_sched_class = {
 	.next 			= &dl_sched_class,
