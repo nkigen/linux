@@ -454,7 +454,10 @@ struct rt_rq {
 struct dss_rq {
     struct rb_root dss_rb_root;
     struct rb_node *dss_rb_node;/*TODO: list or rb tree?? */
-
+#ifdef CONFIG_SMP
+    /*TODO: Define this*/
+#else
+#endif
     unsigned long dss_nr_running;
 };
 
@@ -572,7 +575,7 @@ struct rq {
     struct cfs_rq cfs;
     struct rt_rq rt;
     struct dl_rq dl;
-    struct dss_rq dss;
+    struct dss_rq dss;  /*SCHED_DSS runqueue*/
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
     /* list of leaf cfs_rq on this cpu: */
@@ -1184,6 +1187,7 @@ struct sched_class {
 
 extern const struct sched_class stop_sched_class;
 extern const struct sched_class dl_sched_class;
+extern const struct sched_class dss_sched_class;
 extern const struct sched_class rt_sched_class;
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;
@@ -1214,7 +1218,8 @@ extern void update_max_interval(void);
 extern void init_sched_dl_class(void);
 extern void init_sched_rt_class(void);
 extern void init_sched_fair_class(void);
-extern void init_sched_dl_class(void);
+//extern void init_sched_dl_class(void);
+extern void init_sched_dss_class(void);
 
 extern void resched_task(struct task_struct *p);
 extern void resched_cpu(int cpu);
@@ -1505,6 +1510,7 @@ extern void print_rt_stats(struct seq_file *m, int cpu);
 extern void init_cfs_rq(struct cfs_rq *cfs_rq);
 extern void init_rt_rq(struct rt_rq *rt_rq, struct rq *rq);
 extern void init_dl_rq(struct dl_rq *dl_rq, struct rq *rq);
+extern void init_dss_rq(struct dss_rq *dss_rq, struct rq *rq);
 
 extern void cfs_bandwidth_usage_inc(void);
 extern void cfs_bandwidth_usage_dec(void);
