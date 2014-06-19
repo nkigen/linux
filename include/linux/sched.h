@@ -117,7 +117,7 @@ struct sched_attr
   /* SCHED_FIFO, SCHED_RR */
   u32 sched_priority;
 
-  /* SCHED_DEADLINE and SCHED_DSS */
+  /* SCHED_DEADLINE, SCHED_DSS */
   u64 sched_runtime;
   u64 sched_deadline;
   u64 sched_period;
@@ -1161,16 +1161,18 @@ struct sched_rt_entity
 struct sched_dss_entity
 {
   struct rb_node rb_node;
-  unsigned int sched_dss_id;	/*SCHED_DSS task logical id */
-//struct sched_attr *sched_attr;
+  unsigned int dss_entity_type; /*DSS_PERIODIC or DSS_SPORADIC*/
 /*original SCHED_DSS task attributes */
   
-  u64 dss_runtime;
   u64 dss_deadline; /*task deadline*/
   u64 dss_runtime; /*maximum execution time  Cmax*/
+  u64 dss_period; /*Period for DSS_PERIODIC Tasks*//*TODO: Set for DSS_SPORADIC Tasks*/
   u64 dss_bw; /*task bandwidth per instance*/
 
-  struct hrtimer dss_timer; /*one task per timer*/
+  /*Scheduling params*/
+  s64 runtime; /*Remaining Runtime*/
+  u64 abs_deadline; /*Absolute deadline for the Task*/
+  struct hrtimer dss_timer; /*one timer per task*/
 
 };
 

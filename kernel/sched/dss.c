@@ -10,6 +10,14 @@
 #include "sched.h"
 
 
+void init_sched_dss_class(void){
+/*TODO: Implement this*/
+}
+
+void init_dss_rq(struct dss_rq *dss_rq, struct rq *rq){
+	/*TODO:Implement this*/
+}
+
 static inline void dss_spin_lock_init(spilock_t *lock)
 {
 	raw_spin_lock_init(&lock->rlock);
@@ -40,7 +48,6 @@ static void enqueue_task_dss(struct rq *rq, struct task_struct *p, int flags)
    	
 	enqueue_dss_entity(se, flags);/*add to rb-tree of SCHED_DSS tasks*/
 	inc_nr_running(rq); /*inc running tasks*/
-
 }
 
 static void dequeue_task_dss(struct rq *rq, struct task_struct *p, int flags)
@@ -51,8 +58,8 @@ static void dequeue_task_dss(struct rq *rq, struct task_struct *p, int flags)
 	dec_nr_running(rq);
 }
 
-/*Force task to sleep untill next deadline*/
-static void yield_task_dss(struct rg *rq)
+/*Force task to sleep until next deadline*/
+static void yield_task_dss(struct rq *rq)
 {
 	struct task_struct *t = rq->curr;
 	if(likely(t->dss.runtime > 0))
@@ -117,7 +124,7 @@ static void prio_changed_dss(struct rq *rq, struct task_struct *t, int oldp)
 /*TODO: Implement this!!*/
 #else
 		resched_task(t);
-
+#endif
 	}
 	else
 		/*TODO: Implement this!!*/
@@ -135,9 +142,9 @@ const struct sched_class dss_sched_class = {
 	.put_prev_task		= put_prev_task_dss,
 
 #ifdef CONFIG_SMP
-
+/*TODO: Define these hooks*/
 #endif
-
+/*TODO: Define task_tick_dss, task_fork_dss and task_dead_dss*/
 	.set_curr_task		= set_curr_task_dss,
 	.task_tick		= task_tick_dss,
 	.task_fork		= task_fork_dss,
