@@ -937,6 +937,7 @@ inline int task_curr(const struct task_struct *p)
 	return cpu_curr(task_cpu(p)) == p;
 }
 
+/*TODO:confirm if dss should be added here */
 static inline void check_class_changed(struct rq *rq, struct task_struct *p,
 				       const struct sched_class *prev_class,
 				       int oldprio)
@@ -6819,6 +6820,7 @@ void __init sched_init(void)
 		init_cfs_rq(&rq->cfs);
 		init_rt_rq(&rq->rt, rq);
 		init_dl_rq(&rq->dl, rq);
+		init_dss_rq(&rq->dss, rq);
 #ifdef CONFIG_FAIR_GROUP_SCHED
 		root_task_group.shares = ROOT_TASK_GROUP_LOAD;
 		INIT_LIST_HEAD(&rq->leaf_cfs_rq_list);
@@ -7002,7 +7004,7 @@ void normalize_rt_tasks(void)
 		p->se.statistics.block_start	= 0;
 #endif
 
-		if (!dl_task(p) && !rt_task(p)) {
+		if (!dl_task(p) && !rt_task(p) && !dss_task(p)) {
 			/*
 			 * Renice negative nice level userspace
 			 * tasks back to 0:
