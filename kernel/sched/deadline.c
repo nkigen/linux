@@ -380,7 +380,7 @@ static bool dl_entity_overflow(struct sched_dl_entity *dl_se,
 	 * and (deadline - t), since t is rq->clock, is the time left
 	 * to the (absolute) deadline. Even if overflowing the u64 type
 	 * is very unlikely to occur in both cases, here we scale down
-	 * as we want to avoid that risk at all. Scaling down by 10
+	* as we want to avoid that risk at all. Scaling down by 10
 	 * means that we reduce granularity to 1us. We are fine with it,
 	 * since this is only a true/false check and, anyway, thinking
 	 * of anything below microseconds resolution is actually fiction

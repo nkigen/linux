@@ -124,11 +124,24 @@ static inline int task_has_dss_policy(struct task_struct *p)
 {
     return dss_policy(p->policy);
 }
+static inline bool dss_deadline_near(u64 a, u64 b)
+{
+    return (s64)(a - b) < 0;
+}
+
+/*Wrapper for dss_deadline_near just for clarity*/
+static inline bool dss_time_before(u64 a, u64 b){
+return dss_deadline_near(a,b);
+}
 static inline bool dl_time_before(u64 a, u64 b)
 {
     return (s64)(a - b) < 0;
 }
 
+static inline bool dss_entity_preempt(struct sched_dss_entity *a, struct sched_dss_entity *b)
+{
+    return dss_deadline_near(a->abs_deadline, b->abs_deadline);
+}
 /*
  * Tells if entity @a should preempt entity @b.
  */
@@ -453,12 +466,13 @@ struct rt_rq {
 /*SCHED_DSS related runqueue fields*/
 struct dss_rq {
     struct rb_root dss_rb_root;
-    struct rb_node *dss_rb_node;/*TODO: list or rb tree?? */
+    struct rb_node *dss_rb_node;/*TODO: leftmost node*/
 #ifdef CONFIG_SMP
     /*TODO: Define this*/
 #else
 #endif
     unsigned long dss_nr_running;
+    unsigned long dss_sporadic_nr_running;/*#DSS_SPORADIC TASKS running*/
 };
 
 /* Deadline class' related fields in a runqueue */

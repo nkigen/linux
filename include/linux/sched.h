@@ -1167,11 +1167,11 @@ struct sched_dss_entity
   u64 dss_deadline; /*task deadline*/
   u64 dss_runtime; /*maximum execution time  Cmax*/
   u64 dss_period; /*Period for DSS_PERIODIC Tasks*//*TODO: Set for DSS_SPORADIC Tasks*/
-  u64 dss_bw; /*task bandwidth per instance*/
 
   /*Scheduling params*/
   s64 runtime; /*Remaining Runtime*/
   u64 abs_deadline; /*Absolute deadline for the Task*/
+  bool dss_new; /*Tells if this is a new Task or an old one*/
   struct hrtimer dss_timer; /*one timer per task*/
 
 };
