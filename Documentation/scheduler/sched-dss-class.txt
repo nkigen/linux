@@ -1,0 +1,58 @@
+SCHED_DSS class
+===============
+This scheduling class implements the Dynamic Sporadic Server(DSS) RealTime
+Scheduler as proposed by Spuri and
+Buttazzo (see http://link.springer.com/article/10.1007/BF00360340#page-1)
+
+Design Inspiration(s)
+==================
+The design including the function and variable naming styles adopted in
+SCHED_DSS is borrowed heavilly from
+SCHED_DEADLINE class and the RT scheduling group in general.
+Also I found a nice tutorial online regarding the design and implementation of a
+new scheduler
+(link:http://www.embedded.com/design/operating-systems/4204971/Real-Time-Linux-Scheduling-Part-2 )
+
+Data Structures
+===============
+Since most of scheduling parameters are shared with the SCHED_DEADLINE class,
+this class also makes use of "struct sched_attr". However, it adds a new
+"sched_type" field.
+
+	a)sched_dss_entity
+	==================
+This structure stores the scheduling parameters for the task. It stores all
+the original parameters(copied from sched_attr), the task type(DSS_SPORADIC OR
+DSS_PERIODIC) and the current scheduling parameters (absolute deadline,
+remaining runtime etc)
+
+	b)dss_rq
+	========
+Stores the run queue parameters for SCHED_DSS tasks including the number of
+SCHED_DSS tasks and also the number of DSS_SPORADIC task types(needed in order
+to calculate their deadline and runtime)
+
+Task Types
+==========
+In order to distinguish between periodic, aperiodic and sporadic tasks, this
+class adds DSS_SPORADIC (for sporadic and aperiodic tasks) and DSS_PERIODIC
+(for periodic tasks) task types. All tasks must be defined to be either
+of the two types.
+
+Problems(known)
+===============
+
+-SMP: I tried, but failed :-( to make use of SMP architectures and sadly in the end
+I decided remove all SMP architecture support :-1:
+
+-sched_setscheduler2 : I failed to locate the file containing this function so
+that I can edit it(and copy the scheduling parameters to sched_dss_entity).
+
+- HRTIMERS : I was not sure of how and when to use an hrtimer instead of the
+  timer provided by the run queue.
+
+- Whether to define a default period to be used by the DSS_SPORADIC tasks or
+  to use the value in sched_attr.
+
+- Using a shared runtime for all the DSS_SPORADIC tasks(C_s), possibly saving
+  it in dss_rq??
