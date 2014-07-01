@@ -17,12 +17,20 @@ void init_sched_dss_class(void) {
 
 void init_dss_rq(struct dss_rq *dss_rq, struct rq *rq) {
 
+    struct dss_sporadic_bw *bw ;
     dss_rq->dss_rb_root = RB_ROOT;
+
+    bw = &dss_rq->dss_sporadic_bw;
 #ifdef CONFIG_SMP
     /*TODO:*/
 #endif
+    /*set DSS_SPORADIC bandwidth management params needed by the DSS algorithm*/
     dss_rq->dss_nr_running = 0;
-    dss_rq->dss_sporadic_nr_running = 0;
+    bw->dss_sporadic_nr_running = 0;
+    bw->dss_sporadic_runtime = 0;
+    bw->dss_replenish_time = rq_clock(rq);
+    bw->dss_replenish_amt = 0;
+    bw->prev_runtime = 0;
 
 }
 
@@ -64,18 +72,72 @@ static inline unsigned int dss_entity_type(struct sched_dss_entity *se) {
     return se->dss_entity_type;
 }
 
-static void dss_sporadic_update(struct sched_dss_entity *dss_se){
+/*
+ * DSS_SPORADIC tasks share a runtime and the replemnishment times
+ * stored in struct dss_rq. HOWEVER, each has individual deadlines
+ *
+ * Here we update the scheduling parameters based on the DSS Algorithm
+ */
+static void dss_sporadic_update(struct sched_dss_entity *dss_se) {
+    struct dss_rq *dss_rq = dss_rq_of_se(dss_se);
+    struct rq *rq = rq_of_dss_rq(dss_rq);
 
+    struct dss_sporadic_bw *bw;
+   bw  = &dss_rq->dss_sporadic_bw;
+    /*Set the replenishment time*/
+    if(bw->dss_sporadic_nr_running &&
+            bw->dss_sporadic_runtime) {
+        bw->dss_replenish_time = rq_clock(rq) + dss_se->dss_period;
+        bw->is_replenish = true;
+        bw->prev_runtime = bw->dss_sporadic_runtime;
+
+    }
+    if(bw->is_replenish) {
+        bw->dss_replenish_amt += bw->prev_runtime;
+        bw->prev_runtime = bw->dss_sporadic_runtime;
+    }
+    if(!bw->dss_sporadic_nr_running ||
+            !bw->dss_sporadic_runtime) {
+        bw->dss_sporadic_runtime += bw->dss_replenish_amt;
+        bw->prev_runtime = 0;
+        bw->is_replenish = false;
+    }
+
+    /*Absolute deadline is set to the next replenishment time
+     * if is_replenish is true it means that the deadline so we have to resched the task*/
+
+    if(bw->is_replenish) {
+        dss_se->abs_deadline = bw->dss_replenish_time;
+        resched_task(rq->curr);
+    }
+}
+
+/*
+ * Update runtime of a DSS_PERIODIC task*/
+static void dss_periodic_update(struct sched_dss_entity *dss_se) {
+
+    struct dss_rq *dss_rq = dss_rq_of_se(dss_se);
+    struct rq *rq = rq_of_dss_rq(dss_rq);
+    /*rtime = max_rtime - curr_rtime*/
+    s64 rtime = dss_se->dss_runtime - dss_se->runtime;
+    if(rtime <= 0) {
+        dss_se->runtime = 0;
+        dss_se->abs_deadline = rq_clock(rq) + dss_se->dss_deadline;
+    }
 }
 
 static inline void init_dss_entity(struct sched_dss_entity *dss_se) {
     /*TODO: Init all the scheduling params*/
 //    WARN_ON(!dss_se->new);
+    struct dss_rq *dss_rq = dss_rq_of_se(dss_se);
+    struct rq *rq = rq_of_dss_rq(dss_rq);
+
     if(dss_entity_type(dss_se) == DSS_SPORADIC) {
-	dss_sporadic_update(dss_se);
+        dss_sporadic_update(dss_se);
     }
     else if(dss_entity_type(dss_se) == DSS_PERIODIC) {
-
+        dss_se->runtime = dss_se->dss_runtime;
+        dss_se->abs_deadline = rq_clock(rq) + dss_se->dss_deadline;
     }
     else { /*DEFINATELY an ERROR!!..Should never happen*/
         BUG_ON(1);
@@ -84,9 +146,6 @@ static inline void init_dss_entity(struct sched_dss_entity *dss_se) {
 }
 
 static void update_dss_entity(struct sched_dss_entity *se) {
-    /*TODO:*/
-    //struct dss_rq *dss_rq = dss_rq_of_se(se);
-    //struct rq *rq = rq_of_dss_rq(dss_rq);
 
     if(se->dss_new) {
         /*This is a new task: Initialize its sched_dss_entity*/
@@ -95,6 +154,12 @@ static void update_dss_entity(struct sched_dss_entity *se) {
     }
     else {
 
+        if(dss_entity_type(se) == DSS_SPORADIC) {
+            dss_sporadic_update(se);
+        }
+        else if(dss_entity_type(se) == DSS_PERIODIC) {
+            dss_periodic_update(se);
+        }
     }
 }
 
@@ -102,19 +167,20 @@ static void update_dss_entity(struct sched_dss_entity *se) {
 static void replenish_dss_entity(struct sched_dss_entity *se) {
 
     if(dss_entity_type(se) == DSS_SPORADIC) {
-
+        dss_sporadic_update(se);
     }
     else if(dss_entity_type(se) == DSS_PERIODIC) {
-
+        dss_periodic_update(se);
     }
 }
 
 static void inc_dss_tasks(struct sched_dss_entity *dss_se, struct dss_rq *dss_rq) {
+    struct dss_sporadic_bw *bw;
+    bw = &dss_rq->dss_sporadic_bw;
     dss_rq->dss_nr_running++;
     if(dss_entity_type(dss_se) == DSS_SPORADIC)
-        dss_rq->dss_sporadic_nr_running++;
+        bw->dss_sporadic_nr_running++;
 }
-
 
 static void __enqueue_dss_entity(struct sched_dss_entity *se) {
 
@@ -144,7 +210,7 @@ static void __enqueue_dss_entity(struct sched_dss_entity *se) {
 /*Adds a SCHED_DSS task to the dss_rq*/
 static void enqueue_dss_entity(struct sched_dss_entity *se, int flags)
 {
-/*Calculate the Task deadline before enqueueing it*/
+    /*Calculate the Task deadline before enqueueing it*/
     if(se->dss_new) {
         /*Update scheduling params*/
         update_dss_entity(se);
@@ -168,13 +234,19 @@ static void enqueue_task_dss(struct rq *rq, struct task_struct *p, int flags)
 
 static void dss_update_task(struct rq *rq) {
     /*TODO:*/
+	struct dss_rq *dss_rq = &rq->dss;
+	struct rb_node *node = dss_rq->dss_rb_node;
+	struct sched_dss_entity *dss_se = rb_entry(node,struct sched_dss_entity,rb_node);
+	update_dss_entity(dss_se);
+
 }
 
 
 static void dec_dss_task(struct dss_rq *dss_rq, struct sched_dss_entity *dss_se) {
+    struct dss_sporadic_bw *bw = &dss_rq->dss_sporadic_bw;
     dss_rq->dss_nr_running--;
     if(dss_entity_type(dss_se) == DSS_SPORADIC)
-        dss_rq->dss_sporadic_nr_running--;
+        bw->dss_sporadic_nr_running--;
 }
 
 static void __dequeue_dss_entity(struct sched_dss_entity *se, int flags) {
@@ -202,8 +274,6 @@ static void dequeue_dss_entity(struct sched_dss_entity *se) {
 
 static void dequeue_task_dss(struct rq *rq, struct task_struct *p, int flags)
 {
-
-    /*TODO: update dss rq*/
     dequeue_dss_entity(&p->dss);
     dec_nr_running(rq);
 }
@@ -223,12 +293,19 @@ static void yield_task_dss(struct rq *rq)
  * */
 static void check_preempt_curr_dss(struct rq *rq, struct task_struct *p, int flags)
 {
-	/*TODO: Check if p is of SCHED_DSS*/
-   /* if(dss_entity_preempt(p->dss, &rq->curr->dss->rb_node)) {
+    struct task_struct *curr_task = rq->curr;
+    struct sched_dss_entity *curr_se = &curr_task->dss;
+    struct sched_dss_entity *new_se = &p->dss;
+
+    /*Check if p is of SCHED_DSS*/
+    if(!dss_task(p))
+	    return;
+    
+    if(dss_entity_preempt(new_se, curr_se)) {
         resched_task(rq->curr);
         return;
     }
-    */
+
     /*TODO: cases where the deadlines are the same though unlikely*/
 }
 
@@ -247,7 +324,7 @@ static struct sched_dss_entity *pick_next_dss_entity(struct dss_rq *dss_rq)
 
 static struct task_struct *pick_next_task_dss(struct rq *rq)
 {
-    struct task_struct *next;
+    struct task_struct *next = NULL;
     struct sched_dss_entity *se;
     struct dss_rq *dss_rq = &rq->dss;
 
@@ -260,18 +337,18 @@ static struct task_struct *pick_next_task_dss(struct rq *rq)
 
 static void put_prev_task_dss(struct rq *rq, struct task_struct *p)
 {
-    /*TODO: implement this!!*/
+	dss_update_task(rq);
 }
 static void set_curr_task_dss(struct rq *rq)
 {
-    /*TODO:*/
+ 
 }
 
 static void prio_changed_dss(struct rq *rq, struct task_struct *t, int oldp)
 {
     if(t->on_rq || rq->curr == t) {
 #ifdef CONFIG_SMP
-        /*TODO: Implement this!!*/
+        /*TODO: */
 #else
         resched_task(t);
 #endif
@@ -281,41 +358,42 @@ static void prio_changed_dss(struct rq *rq, struct task_struct *t, int oldp)
     /*TODO:*/
 }
 
-static bool dss_runtime_exceeded(struct rq *rq, struct sched_dss_entity *dss_se){
-/*TODO:*/
-	int miss = dss_time_before(dss_se->abs_deadline, rq_clock(rq));
-	//int rtime = dss_se->runtime;
+static bool dss_runtime_exceeded(struct rq *rq, struct sched_dss_entity *dss_se) {
+    /*TODO:*/
+    int miss = dss_time_before(dss_se->abs_deadline, rq_clock(rq));
+    //int rtime = dss_se->runtime;
 
-	if(!miss)
-		return 0;
-	/*TODO: Update runtime*/
-
-	return 1;
+    if(!miss)
+        return 0;
+    return 1;
 }
-static void update_dss_curr(struct rq *rq){
+static void update_dss_curr(struct rq *rq) {
+    struct sched_dss_entity *curr = &rq->curr->dss;
+u64 rtime; 
+    if(!dss_task(rq->curr))
+        return;
+    rtime = rq_clock_task(rq) - rq->curr->se.exec_start;
+    if(rtime < 0)
+        return;
 
-	struct sched_dss_entity *curr = &rq->curr->dss;
-       if(!dss_task(rq->curr))
-	       return;
-       //u64 rtime = rq_clock_task(rq) - rq->curr->se.exec_start;
-
-       /*TODO: Check if rtime < 0*/
-     /*TODO: */ 
-       /*If runtime has been exceeded, enqueue it and reschedule it*/
-       if(dss_runtime_exceeded(rq, curr)){
-	       enqueue_task_dss(rq, rq->curr,0);
-	       resched_task(rq->curr);
-	}
+    /*TODO: */
+    /*If runtime has been exceeded, enqueue it and reschedule it*/
+    if(dss_runtime_exceeded(rq, curr)) {
+        enqueue_task_dss(rq, rq->curr,0);
+        resched_task(rq->curr);
+    }
+    else
+        update_dss_entity(curr);
 
 }
-static void task_tick_dss(struct rq *rq, struct task_struct *t, int queued){
+static void task_tick_dss(struct rq *rq, struct task_struct *t, int queued) {
 
-	update_dss_curr(rq);
+    update_dss_curr(rq);
 }
 
-static void task_fork_dss(struct task_struct *p){}
+static void task_fork_dss(struct task_struct *p) {}
 
-static void switched_to_dss(struct rq *rq, struct task_struct *p){
+static void switched_to_dss(struct rq *rq, struct task_struct *p) {
 
     /*Check if policy is SCHED_DSS*/
     if(!task_has_dss_policy(rq->curr))
@@ -324,23 +402,24 @@ static void switched_to_dss(struct rq *rq, struct task_struct *p){
 }
 
 
-static void switched_from_dss(struct rq *rq, struct task_struct *p){
+static void switched_from_dss(struct rq *rq, struct task_struct *p) {
     if(dss_policy(p->policy))
-        return;/*Its still using SCHED_DSS so don't cancel*/
-    if(hrtimer_active(&p->dss.dss_timer))
-        hrtimer_try_to_cancel(&p->dss.dss_timer);
+        return;
+    /*TODO:*/
 #ifdef CONFIG_SMP
 #endif
 }
 
 
+static void task_dead_dss(struct task_struct *p){
+}
 const struct sched_class dss_sched_class = {
     .next 			= &dl_sched_class,
     .enqueue_task		= enqueue_task_dss,
     .dequeue_task		= dequeue_task_dss,
-    .yield_task		= yield_task_dss,
+    .yield_task			= yield_task_dss,
 
-    .check_preempt_curr	= check_preempt_curr_dss,
+    .check_preempt_curr		= check_preempt_curr_dss,
 
     .pick_next_task		= pick_next_task_dss,
     .put_prev_task		= put_prev_task_dss,
@@ -350,9 +429,9 @@ const struct sched_class dss_sched_class = {
 #endif
     /*TODO: Define task_tick_dss, task_fork_dss and task_dead_dss*/
     .set_curr_task		= set_curr_task_dss,
-    .task_tick		= task_tick_dss,
-    .task_fork		= task_fork_dss,
-    //.task_dead		= task_dead_dss,
+    .task_tick			= task_tick_dss,
+    .task_fork			= task_fork_dss,
+    .task_dead			= task_dead_dss,
 
     .prio_changed		= prio_changed_dss,
     .switched_from		= switched_from_dss,

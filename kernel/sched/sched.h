@@ -463,6 +463,22 @@ struct rt_rq {
 #endif
 };
 
+/*DSS_SPORADIC bandwidth mgt*/
+struct dss_sporadic_bw{
+    unsigned long dss_sporadic_nr_running;/*#DSS_SPORADIC TASKS running*/
+    /*Shared by all DSS_SPORADIC tasks and replenished according 
+     * to DSS algorithm rules*/
+    u64 dss_sporadic_runtime;
+    /*
+     * Next time for the replenishment of 
+     * dss_sporadic runtime*/
+    u64 dss_replenish_time; 
+    u64 dss_replenish_amt;
+    bool is_replenish;
+    u64 prev_runtime; /*runtime available when is_replenish was set to true*/
+
+};
+
 /*SCHED_DSS related runqueue fields*/
 struct dss_rq {
     struct rb_root dss_rb_root;
@@ -472,7 +488,7 @@ struct dss_rq {
 #else
 #endif
     unsigned long dss_nr_running;
-    unsigned long dss_sporadic_nr_running;/*#DSS_SPORADIC TASKS running*/
+    struct dss_sporadic_bw dss_sporadic_bw;
 };
 
 /* Deadline class' related fields in a runqueue */
