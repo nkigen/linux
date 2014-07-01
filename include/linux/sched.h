@@ -1172,7 +1172,7 @@ struct sched_dss_entity
   s64 runtime; /*Remaining Runtime*/
   u64 abs_deadline; /*Absolute deadline for the Task*/
   bool dss_new; /*Tells if this is a new Task or an old one*/
-  struct hrtimer dss_timer; /*one timer per task*/
+  //struct hrtimer dss_timer; /*one timer per task*/
 
 };
 

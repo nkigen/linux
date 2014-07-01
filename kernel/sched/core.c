@@ -3190,6 +3190,17 @@ __setparam_dl(struct task_struct *p, const struct sched_attr *attr)
 	dl_se->dl_new = 1;
 }
 
+static void 
+__setparam_dss(struct task_struct *p, const struct sched_attr *attr){
+
+	struct sched_dss_entity *dss_se = &p->dss;
+
+	dss_se->dss_runtime = attr->sched_runtime;
+	dss_se->dss_deadline = attr->sched_deadline;
+	dss_se->dss_period = attr->sched_period;
+	dss_se->dss_new = 1;
+	dss_se->dss_entity_type = attr->sched_type;
+}
 /* Actually do priority change: must hold pi & rq lock. */
 static void __setscheduler(struct rq *rq, struct task_struct *p,
 			   const struct sched_attr *attr)
@@ -3205,6 +3216,8 @@ static void __setscheduler(struct rq *rq, struct task_struct *p,
 		__setparam_dl(p, attr);
 	else if (fair_policy(policy))
 		p->static_prio = NICE_TO_PRIO(attr->sched_nice);
+	else if(dss_policy(policy))
+		__setparam_dss(p,attr);
 
 	/*
 	 * __sched_setscheduler() ensures attr->sched_priority == 0 when
