@@ -24,7 +24,7 @@ static inline int dss_prio(int prio)
     return 0;
 }
 
-static inline dss_task(struct task_struct *p)
+static inline int dss_task(struct task_struct *p)
 {
     return dss_prio(p->prio);
 }
