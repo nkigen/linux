@@ -93,7 +93,7 @@ static void dss_sporadic_update(struct sched_dss_entity *dss_se) {
 
     }
     if(bw->is_replenish) {
-        bw->dss_replenish_amt += bw->prev_runtime;
+        bw->dss_replenish_amt += bw->prev_runtime - bw->dss_sporadic_runtime;
         bw->prev_runtime = bw->dss_sporadic_runtime;
     }
     if(!bw->dss_sporadic_nr_running ||
@@ -326,7 +326,7 @@ static struct task_struct *pick_next_task_dss(struct rq *rq)
 {
     struct task_struct *next = NULL;
     struct sched_dss_entity *se;
-    struct dss_rq *dss_rq = &rq->dss;
+    struct dss_rq *dss_rq = &rq->dss; 
 
     se = pick_next_dss_entity(dss_rq);
     next = dss_task_of(se);
@@ -361,10 +361,11 @@ static void prio_changed_dss(struct rq *rq, struct task_struct *t, int oldp)
 static bool dss_runtime_exceeded(struct rq *rq, struct sched_dss_entity *dss_se) {
     /*TODO:*/
     int miss = dss_time_before(dss_se->abs_deadline, rq_clock(rq));
-    //int rtime = dss_se->runtime;
+/*Update the deadline and reschedule the task*/
 
     if(!miss)
         return 0;
+    dss_update_task(rq);
     return 1;
 }
 static void update_dss_curr(struct rq *rq) {

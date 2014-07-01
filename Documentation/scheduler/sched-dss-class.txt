@@ -13,6 +13,39 @@ Also I found a nice tutorial online regarding the design and implementation of a
 new scheduler
 (link:http://www.embedded.com/design/operating-systems/4204971/Real-Time-Linux-Scheduling-Part-2 )
 
+Task Types
+==========
+In order to distinguish between periodic, aperiodic and sporadic tasks, this
+class adds DSS_SPORADIC (for sporadic and aperiodic tasks) and DSS_PERIODIC
+(for periodic tasks) task types. All tasks must be defined to be either
+of the two types.
+
+	a) DSS_SPORADIC
+	===============
+DSS_SPORADIC scheduling parameters are calculated by the dss_sporadic_update
+function. It works as follows in order to implement the DSS algorithm:
+- For it to calculate the next replenishment time(dss_replenish_time), if
+  checks if the number of DSS_SPORADIC tasks are > 0 and the server capacity
+(dss_sporadic_runtime) if also > 0. Thereafter, the replenishment time is
+calculated as :
+	bw->dss_replenish_time = rq_clock(rq) + dss_se->dss_period
+(dss_se->dss_period is the server period).
+Also a flag(is_replenish) is set to keep track of the server runtime consumed
+between now and dss_replenish_time. The remaining server runtime is also
+stored in prev_runtime.
+
+At every subsequent call to "dss_sporadic_update", the value of replenishment
+amount is increment as:
+	bw->dss_replenish_amt = bw->prev_runtime - bw->dss_sporadic_runtime
+
+In order to update the server runtime now, we check if there are no
+DSS_SPORADIC tasks running OR the server runtime is depleted before updating
+it by the replenishment amt and setting the is_replenish flag to false.
+
+The deadline of the task is also updated to the value of the next server
+replenishment time.
+
+
 Data Structures
 ===============
 Since most of scheduling parameters are shared with the SCHED_DEADLINE class,
@@ -24,35 +57,20 @@ this class also makes use of "struct sched_attr". However, it adds a new
 This structure stores the scheduling parameters for the task. It stores all
 the original parameters(copied from sched_attr), the task type(DSS_SPORADIC OR
 DSS_PERIODIC) and the current scheduling parameters (absolute deadline,
-remaining runtime etc)
+remaining runtime) used for scheduling the tasks. HOWEVER, for DSS_SPORADIC
+tasks, their scheduling parameters(EXPECT) the deadline are stored in a struct
+dss_sporadic_bw (discussed below)
 
 	b)dss_rq
 	========
 Stores the run queue parameters for SCHED_DSS tasks including the number of
-SCHED_DSS tasks and also the number of DSS_SPORADIC task types(needed in order
-to calculate their deadline and runtime)
+SCHED_DSS tasks and and dss_sporadic_bw which stores the scheduling parameters
+for DSS_SPORADIC tasks.
 
-Task Types
-==========
-In order to distinguish between periodic, aperiodic and sporadic tasks, this
-class adds DSS_SPORADIC (for sporadic and aperiodic tasks) and DSS_PERIODIC
-(for periodic tasks) task types. All tasks must be defined to be either
-of the two types.
+       c)dss_sporadic_bw
+	================
+This structure stores the data needed for the implementation of the DSS
+algorithm(replenishment time, replenishment amount, # of DSS_SPORADIC tasks,
+server runtime etc)
 
-Problems(known)
-===============
 
--SMP: I tried, but failed :-( to make use of SMP architectures and sadly in the end
-I decided remove all SMP architecture support :-1:
-
--sched_setscheduler2 : I failed to locate the file containing this function so
-that I can edit it(and copy the scheduling parameters to sched_dss_entity).
-
-- HRTIMERS : I was not sure of how and when to use an hrtimer instead of the
-  timer provided by the run queue.
-
-- Whether to define a default period to be used by the DSS_SPORADIC tasks or
-  to use the value in sched_attr.
-
-- Using a shared runtime for all the DSS_SPORADIC tasks(C_s), possibly saving
-  it in dss_rq??
