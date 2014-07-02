@@ -15,6 +15,14 @@ void init_sched_dss_class(void) {
     /*TODO:*/
 }
 
+static inline void __init_dss_sporadic_bw(struct rq *rq, struct dss_sporadic_bw *bw) {
+
+    bw->dss_sporadic_nr_running = 0;
+    bw->dss_sporadic_runtime = 0;
+    bw->dss_replenish_time = rq_clock(rq);
+    bw->dss_replenish_amt = 0;
+    bw->prev_runtime = 0;
+}
 void init_dss_rq(struct dss_rq *dss_rq, struct rq *rq) {
 
     struct dss_sporadic_bw *bw ;
@@ -26,12 +34,7 @@ void init_dss_rq(struct dss_rq *dss_rq, struct rq *rq) {
 #endif
     /*set DSS_SPORADIC bandwidth management params needed by the DSS algorithm*/
     dss_rq->dss_nr_running = 0;
-    bw->dss_sporadic_nr_running = 0;
-    bw->dss_sporadic_runtime = 0;
-    bw->dss_replenish_time = rq_clock(rq);
-    bw->dss_replenish_amt = 0;
-    bw->prev_runtime = 0;
-
+    __init_dss_sporadic_bw(rq,bw);
 }
 
 static inline struct task_struct *dss_task_of(struct sched_dss_entity *se)
