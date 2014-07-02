@@ -98,7 +98,11 @@ static void dss_sporadic_update(struct sched_dss_entity *dss_se) {
         dss_se->abs_deadline = bw->dss_replenish_time;
         resched_task(rq->curr);
     }
-    bw->dss_sporadic_runtime -= rtime;
+
+    if(likely((s64)(bw->dss_sporadic_runtime - rtime) >= 0))
+        bw->dss_sporadic_runtime -= rtime;
+    else
+        bw->dss_sporadic_runtime = 0;
 }
 
 /*
@@ -108,7 +112,11 @@ static void dss_periodic_update(struct sched_dss_entity *dss_se) {
     struct dss_rq *dss_rq = dss_rq_of_se(dss_se);
     struct rq *rq = rq_of_dss_rq(dss_rq);
     s64 rtime;
-    dss_se->runtime -= rq_clock_task(rq) - rq->curr->se.exec_start;
+    rtime = rq_clock_task(rq) - rq->curr->se.exec_start;
+    if(likely((s64)(dss_se->runtime - rtime) >= 0))
+        dss_se->runtime-=rtime;
+    else
+        dss_se->runtime = 0;
 
     /*rtime = max_rtime - curr_rtime*/
     rtime = dss_se->dss_runtime - dss_se->runtime;
